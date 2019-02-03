@@ -1130,6 +1130,42 @@ def get_publication_dates(spider):
       sql = f"INSERT INTO paper.publication_dates (article, date) VALUES (%s, %s);"
       cursor.executemany(sql, answers)
 
+def get_new_urls(spider):
+  max_run = 25
+  spider.log.record(f"Getting new URLs!")
+  to_record = {}
+  time.sleep(10)
+  with spider.connection.db.cursor() as cursor:
+    sql = f"""
+      SELECT id, new_url
+      FROM prod.articles
+      WHERE new_url IS NOT NULL
+      LIMIT {max_run}
+    """
+    cursor.execute(sql)
+    for article in cursor:
+      time.sleep(2)
+      article_id = article[0]
+      new_url = article[1]
+      spider.log.record(f"Refreshing URL for {article_id}", "debug")
+      headers = {'user-agent': config.user_agent}
+      r = requests.get(new_url, headers=headers)
+      if r.status_code != 200:
+        spider.log.record(f"   ****Got weird status code: {r.status_code}. {r.url}", "error")
+        continue
+      spider.log.record(f'   Saving new url: {r.url}','info')
+      to_record[article_id] = r.url
+    spider.log.record('\n----\nSAVING BATCH!\n')
+  with spider.connection.db.cursor() as cursor:
+    sql = f"UPDATE prod.articles SET url=%s, new_url=1 WHERE id=%s;"
+    params = [(url, article_id) for article_id, url in to_record.items()]
+    cursor.executemany(sql, params)
+  if len(to_record.keys()) < max_run:
+    spider.log.record('\nWE ARE DONE!')
+    return
+  spider.log.record('\nLooping around again...')
+  return get_new_urls(spider)
+
 if __name__ == "__main__":
   spider = Spider()
   if len(sys.argv) == 1: # if no action is specified, do everything
@@ -1140,7 +1176,7 @@ if __name__ == "__main__":
     else:
       spider.pull_todays_crossref_data()
   elif sys.argv[1] == "test":
-    get_publication_dates(spider)
+    get_new_urls(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
   elif sys.argv[1] == "refresh":
