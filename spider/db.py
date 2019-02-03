@@ -50,6 +50,8 @@ class Connection(object):
     self.cursor.execute("CREATE TABLE IF NOT EXISTS author_emails (id SERIAL PRIMARY KEY, author integer NOT NULL, email text);")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_authors (id SERIAL PRIMARY KEY, article integer NOT NULL, author integer NOT NULL, UNIQUE (article, author));")
 
+    self.cursor.execute("CREATE TABLE IF NOT EXISTS fulltext (id integer PRIMARY KEY, fulltext text);")
+
     self.cursor.execute("CREATE TABLE IF NOT EXISTS article_traffic (id SERIAL PRIMARY KEY, article integer NOT NULL, month integer, year integer NOT NULL, abstract integer, pdf integer, UNIQUE (article, month, year));")
     self.cursor.execute("CREATE TABLE IF NOT EXISTS crossref_daily (id SERIAL PRIMARY KEY, source_date DATE, doi text NOT NULL, count integer, crawled DATE NOT NULL DEFAULT CURRENT_DATE, UNIQUE(doi, source_date));")
 

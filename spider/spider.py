@@ -38,6 +38,7 @@ import requests
 
 import config
 import db
+import fulltext
 from log import Logger
 import models
 
@@ -1139,7 +1140,7 @@ def get_new_urls(spider):
     sql = f"""
       SELECT id, new_url
       FROM prod.articles
-      WHERE new_url IS NOT NULL
+      WHERE new_url IS NOT NULL AND new_url != '1'
       LIMIT {max_run}
     """
     cursor.execute(sql)
@@ -1179,6 +1180,8 @@ if __name__ == "__main__":
     get_new_urls(spider)
   elif sys.argv[1] == "sitemap":
     spider.build_sitemap()
+  elif sys.argv[1] == "fulltext":
+    fulltext.analyze(spider, 'model')
   elif sys.argv[1] == "refresh":
     if len(sys.argv) < 3:
       print("Must submit ID number of article to be refreshed.")
